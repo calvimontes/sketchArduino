@@ -122,13 +122,13 @@ void getDHT22(){
       BT.println("~");
 
       BT.println();   
-      BT.print(hum);
-      BT.println("*");
-
-      BT.println();   
       BT.print(far);
       BT.println("-");
-    
+      
+      BT.println();   
+      BT.print(hum);
+      BT.println("*");
+      BT.println();      
 
     //Rango de temperatura aceptable mas calor se enciende el ventilador simulando el aire acondicionado
     if (temp > 20){
@@ -166,6 +166,7 @@ void getProximidad(){
   
     Serial.print(distancia);
     Serial.println(" cm");
+    
     BT.println();
     BT.print(distancia);
     BT.println("/");        
