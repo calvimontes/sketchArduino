@@ -1,0 +1,201 @@
+#include <SoftwareSerial.h> /*Librería que permite establecer comunicación serie en otros pins*/
+/*Aquí conectamos los pins RXD,TDX del módulo Bluetooth.*/
+SoftwareSerial BT(10,11); 
+#define PIN_TRIG 12
+#define PIN_ECO  13 
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+#include <avr/power.h>
+#endif
+#define PIN 7
+#define NUMPIXELS 3
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+#include "DHT.h"
+#define DHTPIN 6     // Pin donde está conectado el sensor
+//#define DHTTYPE DHT11   // Descomentar si se usa el DHT 11
+#define DHTTYPE DHT22   // Sensor DHT22
+DHT dht(DHTPIN, DHTTYPE);
+
+const int buzzer = 8; //pin de activacion del buzzer
+char inbyte = 0; //Char para leer el led
+const int ventilador = 9;
+const int potenciometro =A0; 
+int delayval = 100;
+
+
+void setup() {
+  /*initialise serial communications at 9600 bps:*/
+  Serial.begin(9600);
+  pinMode(PIN, OUTPUT);
+  digitalWrite(PIN, LOW);
+  /* inicializa el sensor de temperatura y humedad*/
+  dht.begin();
+  /*inicializa el modulo de bluetooth*/
+  BT.begin(9600);
+  pinMode(buzzer, OUTPUT); //buzzer como salida de audio
+  /* Inicializacion de pines digitales SENSOR PROXIMIDAD*/
+  pinMode(PIN_TRIG, OUTPUT);
+  pinMode(PIN_ECO, INPUT);
+  /*configura el ventilador como puerto de salida*/
+  pinMode(ventilador, OUTPUT);
+  /* Inicializa el led RGB*/
+  pixels.begin();
+}
+ 
+void loop() { 
+  if (BT.available() > 0)
+  {
+    inbyte = BT.read();
+    //BT.println(inbyte);
+    Serial.println(inbyte);
+    //BT.println(varchar);
+    //Serial.write(BT.read());
+       
+  }
+  getProximidad();
+  getBuzzer();
+  getDHT22();
+  getLed();
+  uint32_t rainbow();
+  delay(2000); 
+}
+
+void getLed(){
+    if (inbyte == '1'){
+      for(int i=0;i<NUMPIXELS;i++){
+      // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
+         pixels.setPixelColor(i, pixels.Color(255,255,255)); // Moderately bright green color.
+         pixels.show(); // This sends the updated pixel color to the hardware.
+         delay(delayval);
+         }
+    }
+    if (inbyte == '2'){
+      for(int i=0;i<NUMPIXELS;i++){
+          pixels.setPixelColor(i, pixels.Color(0,0,0)); // Moderately bright green color.
+          pixels.show(); // This sends the updated pixel color to the hardware.
+          delay(delayval);
+    }
+}
+   if (inbyte == '3'){
+      for(int i=0;i<NUMPIXELS;i++){   
+          pixels.setPixelColor(i, rainbow()); // Moderately bright green color.
+          pixels.show(); // This sends the updated pixel color to the hardware.
+          delay(delayval);
+    }
+}   if (inbyte == '4'){
+      for(int i=0;i<NUMPIXELS;i++){
+          pixels.setPixelColor(i, pixels.Color(255,0,0)); // Moderately bright green color.
+          pixels.show(); // This sends the updated pixel color to the hardware.
+          delay(delayval);
+    }
+}   if (inbyte == '5'){
+      for(int i=0;i<NUMPIXELS;i++){
+          pixels.setPixelColor(i, pixels.Color(0,255,0)); // Moderately bright green color.
+          pixels.show(); // This sends the updated pixel color to the hardware.
+          delay(delayval);
+    }
+}   if (inbyte == '6'){
+      for(int i=0;i<NUMPIXELS;i++){
+          pixels.setPixelColor(i, pixels.Color(0,0,255)); // Moderately bright green color.
+          pixels.show(); // This sends the updated pixel color to the hardware.
+          delay(delayval);
+    }
+}
+}
+void getDHT22(){
+          
+  float hum = dht.readHumidity(); //Leemos la Humedad
+  float temp = dht.readTemperature(); //Leemos la temperatura en grados Celsius
+  float far = dht.readTemperature(true); //Leemos la temperatura en grados Fahrenheit
+  //--------Enviamos las lecturas por el puerto serial-------------
+  Serial.print("Temperatura: ");
+  Serial.print(temp);
+  Serial.print(" *C ");
+  Serial.print(far);
+  Serial.print(" *F");
+  Serial.print("  Humedad ");
+  Serial.print(hum);
+  Serial.println(" %t ");
+      
+      
+      BT.println();
+      //byte tempe = temp;
+      BT.print(temp);
+      BT.println("~");
+
+      BT.println();   
+      //byte hume = hum;
+      BT.print(hum);
+      BT.println("*");
+    
+
+    //Rango de temperatura aceptable mas calor se enciende el ventilador simulando el aire acondicionado
+    if (temp > 20){
+       digitalWrite(ventilador, LOW); 
+    }else{
+       digitalWrite(ventilador, HIGH);
+    }
+    if (inbyte == '7'){
+       digitalWrite(ventilador, LOW); //ventilador On
+    }
+    if (inbyte == '8'){
+       digitalWrite(ventilador, HIGH); //ventilador Off
+    }    
+}
+
+void getProximidad(){
+   /*desde aqui es el de proximidad*/
+  long duracion, distancia;  // Variables  
+  /* Hacer el disparo */
+  digitalWrite(PIN_TRIG, LOW);  
+  delayMicroseconds(2); 
+  digitalWrite(PIN_TRIG, HIGH);  // Flanco ascendente
+  delayMicroseconds(10);        // Duracion del pulso
+  digitalWrite(PIN_TRIG, LOW);  // Flanco descendente
+  
+  /* Recepcion del eco de respuesta */
+  duracion = pulseIn(PIN_ECO, HIGH);
+  /* Calculo de la distancia efectiva */
+  distancia = (duracion/2) / 29;
+/* Imprimir resultados a la terminal serial */
+
+ if (distancia < 0 || distancia > 500){
+    Serial.println("Fuera de rango");
+ }else{
+  
+    Serial.print(distancia);
+    Serial.println(" cm");
+    BT.println();
+    BT.print(distancia);
+    BT.println("/");        
+    
+ if (distancia > 15){
+  digitalWrite(buzzer, HIGH); //buzzer on
+  delay(3000);
+  digitalWrite(buzzer, LOW); //buzzer off
+    }
+  /* Retardo para disminuir la frecuencia de las lecturas*/
+  delay(1000);  
+  }
+  
+}
+
+void getBuzzer(){
+  if (inbyte == '9'){
+  digitalWrite(buzzer, HIGH); //buzzer on
+  }
+  if (inbyte == '0'){
+  digitalWrite(buzzer, LOW); //buzzer oFF
+  }
+}
+
+/* unit32_t hace que los leds cambien de forma aleatoria los colores*/
+uint32_t rainbow(){
+  return pixels.Color(random(0,255), random(0,255), random(0,255));
+}
+
+
+
+
+
+
