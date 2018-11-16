@@ -117,16 +117,17 @@ void getDHT22(){
   Serial.print(hum);
   Serial.println(" %t ");
       
-      
       BT.println();
-      //byte tempe = temp;
       BT.print(temp);
       BT.println("~");
 
       BT.println();   
-      //byte hume = hum;
       BT.print(hum);
       BT.println("*");
+
+      BT.println();   
+      BT.print(far);
+      BT.println("-");
     
 
     //Rango de temperatura aceptable mas calor se enciende el ventilador simulando el aire acondicionado
@@ -193,9 +194,6 @@ void getBuzzer(){
 uint32_t rainbow(){
   return pixels.Color(random(0,255), random(0,255), random(0,255));
 }
-
-
-
 
 
 
